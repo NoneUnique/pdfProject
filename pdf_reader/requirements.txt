@@ -1,0 +1,10 @@
+PyQt6==6.5.3
+PyQt6-WebEngine==6.5.0
+pikepdf
+pytesseract
+pdf2image
+python-docx
+markdown
+Pillow
+pdf2docx
+PyMuPDF>=1.23.0
