@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { usePdfStore } from '../../stores/pdfStore';
+import { useQtBridge } from '../../hooks/useQtBridge';
 
 const pdfjsLib = (window as any).pdfjsLib;
 
@@ -56,9 +57,12 @@ export function PDFViewer({
   const renderGenerationRef = useRef(0);
   const renderTaskMapRef = useRef<Map<number, any>>(new Map());
 
+  const { bridge, isReady } = useQtBridge();
+
   useEffect(() => {
     if (!fileUrl) {
-      setIsLoading(true);
+      setPdfDoc(null);
+      setIsLoading(false);
       return;
     }
     
@@ -84,6 +88,21 @@ export function PDFViewer({
       loadingTask.destroy?.();
     };
   }, [fileUrl]);
+
+  const openFileFromDialog = async () => {
+    if (!bridge || !isReady) return;
+    try {
+      const path = await bridge.openFileDialog();
+      if (!path) return;
+      const infoStr = await bridge.loadPdf(path);
+      if (infoStr && infoStr !== '{}') {
+        const info = JSON.parse(infoStr);
+        setPdfInfo(info);
+      }
+    } catch (e) {
+      console.error('打开文件失败', e);
+    }
+  };
 
   useEffect(() => {
     if (!searchQuery.trim() || !pdfDoc) return;
@@ -328,6 +347,39 @@ export function PDFViewer({
   const handleMouseUp = () => {
     setIsDragging(false);
   };
+
+  if (!fileUrl) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: isDark ? '#1e2229' : '#f5f7fa',
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <button onClick={openFileFromDialog} style={{
+            width: 120,
+            height: 120,
+            borderRadius: 12,
+            border: `2px dashed ${isDark ? '#3a3f47' : '#dfe6ee'}`,
+            background: isDark ? '#16181c' : '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 48,
+            color: isDark ? '#9fbffb' : '#409EFF',
+            cursor: 'pointer'
+          }}>+</button>
+          <div style={{ textAlign: 'center', color: isDark ? '#9aa6b2' : '#4b5563' }}>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>打开文件</div>
+            <div style={{ fontSize: 12, marginTop: 6 }}>或将文件拖放到此处</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

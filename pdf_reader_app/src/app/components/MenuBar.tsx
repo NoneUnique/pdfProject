@@ -156,8 +156,8 @@ function MenuDropdown({
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const dropdownBg = isDark ? "#252a33" : "#ffffff";
-  const dropdownBorder = isDark ? "#343844" : "#e2e8f0";
+  const dropdownBg = isDark ? "#262b33" : "#ffffff";
+  const dropdownBorder = isDark ? "#343844" : "#e6e6e6";
 
   const triggerText = isDark ? "#d5dbe7" : "#334155";
 
@@ -188,23 +188,23 @@ function MenuDropdown({
       <button
         onClick={() => setOpen((v) => !v)}
         style={{
-          height: "30px",
+          height: "34px",
           border: "none",
           background: open
             ? isDark
               ? "#2b3442"
-              : "#eaf3ff"
+              : "#eef6ff"
             : "transparent",
           color: open ? "#409EFF" : triggerText,
-          padding: "0 12px",
-          borderRadius: "7px",
+          padding: "6px 14px",
+          borderRadius: "6px",
           display: "flex",
           alignItems: "center",
-          gap: "7px",
+          gap: "10px",
           cursor: "pointer",
-          transition: "all .15s ease",
-          fontSize: "13px",
-          fontWeight: 550,
+          transition: "all .12s ease",
+          fontSize: "14px",
+          fontWeight: 600,
           letterSpacing: "-0.01em",
           ...FONT_STYLE,
         }}
@@ -212,7 +212,7 @@ function MenuDropdown({
           if (!open) {
             e.currentTarget.style.background = isDark
               ? "#2a2d35"
-              : "#f1f5f9";
+              : "#f3f6f9";
           }
         }}
         onMouseLeave={(e) => {
@@ -221,7 +221,7 @@ function MenuDropdown({
           }
         }}
       >
-        <Icon size={14} strokeWidth={2.2} />
+        <Icon size={16} strokeWidth={2.2} />
         {label}
       </button>
 
@@ -231,16 +231,16 @@ function MenuDropdown({
             position: "absolute",
             top: "calc(100% + 6px)",
             left: 0,
-            width: "240px",
+            width: "300px",
             background: dropdownBg,
             border: `1px solid ${dropdownBorder}`,
-            borderRadius: "12px",
-            padding: "8px",
+            borderRadius: "10px",
+            padding: "6px",
             zIndex: 999,
-            backdropFilter: "blur(20px)",
+            backdropFilter: "blur(12px)",
             boxShadow: isDark
-              ? "0 18px 50px rgba(0,0,0,.45)"
-              : "0 18px 50px rgba(15,23,42,.08)",
+              ? "0 18px 40px rgba(0,0,0,.45)"
+              : "0 12px 30px rgba(15,23,42,.06)",
           }}
         >
           {items.map((item, index) =>
@@ -278,6 +278,7 @@ export function MenuBar({
   const bg = isDark ? "#1d2128" : "#ffffff";
   const border = isDark ? "#2d313b" : "#e7edf5";
   const { bridge, isReady } = useQtBridge();
+  const [mergeOpen, setMergeOpen] = useState(false);
 
   const handleOpenFile = async () => {
     if (!bridge) return;
@@ -334,6 +335,50 @@ export function MenuBar({
     const text = prompt("请输入水印文字：");
     if (text) {
       await bridge.addTextWatermark(text, 30, 45, 48);
+    }
+  };
+
+  // 提取若干页面, 输入例如: 1,3,5
+  const handleExtractPages = async () => {
+    if (!bridge) return;
+    const input = prompt('输入要提取的页码 (逗号分隔，例如 1,3,5)：');
+    if (!input) return;
+    try {
+      const pages = input.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+      if (pages.length === 0) return alert('无效页码');
+      await bridge.extractPages(pages);
+      alert('提取完成');
+    } catch (e) {
+      console.error(e);
+      alert('提取失败');
+    }
+  };
+
+  // 删除指定页面
+  const handleDeletePage = async () => {
+    if (!bridge) return;
+    const p = parseInt(prompt('输入要删除的页码：') || '', 10);
+    if (isNaN(p)) return alert('无效页码');
+    try {
+      await bridge.deletePage(p);
+      alert('删除并保存完成');
+    } catch (e) {
+      console.error(e);
+      alert('删除失败');
+    }
+  };
+
+  // 添加图片水印（输入图片路径）
+  const handleAddImageWatermark = async () => {
+    if (!bridge) return;
+    const imgPath = prompt('输入图片路径：');
+    if (!imgPath) return;
+    try {
+      await bridge.addImageWatermark(imgPath, 30);
+      alert('已生成图片水印');
+    } catch (e) {
+      console.error(e);
+      alert('图片水印失败');
     }
   };
 
@@ -476,7 +521,7 @@ export function MenuBar({
         items: [
           {
             label: "PDF 合并",
-            onClick: handleMergePdfs,
+          onClick: () => setMergeOpen(true),
           },
           {
             label: "PDF 拆分",
@@ -494,8 +539,24 @@ export function MenuBar({
             label: "",
           },
           {
-            label: "添加水印",
+            label: "提取页面",
+            onClick: handleExtractPages,
+          },
+          {
+            label: "删除页面",
+            onClick: handleDeletePage,
+          },
+          {
+            divider: true,
+            label: "",
+          },
+          {
+            label: "文字水印",
             onClick: handleAddTextWatermark,
+          },
+          {
+            label: "图片水印",
+            onClick: handleAddImageWatermark,
           },
         ],
       },
@@ -625,6 +686,8 @@ export function MenuBar({
           />
         ))}
       </div>
+
+      <MergeModal isOpen={mergeOpen} onClose={() => setMergeOpen(false)} bridge={bridge} isReady={isReady} />
 
     </div>
   );
